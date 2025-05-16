@@ -15,9 +15,40 @@ recipient_emails = [
     "vickykawadkar779@gmail.com"
 ]
 
-# Email subject and body
-subject = "Test Email from Python"
-body = "Hello, this is a test email from Python!"
+# Email subject and enhanced HTML body
+subject = "Get a Project Collaboration"
+body = '''
+<html>
+<head>
+<style>
+    .btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    .container {
+        font-family: Arial, sans-serif;
+        color: #333;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>Get a Project Collaboration</h2>
+    <p>Hello,<br><br>I hope this message finds you well. I am reaching out to discuss potential project collaboration opportunities. I believe that with my skills and experience, we could work together to achieve great results. Please let me know if you would be open to discussing this further.</p>
+    <p>Looking forward to your response.<br>Best regards,<br>[Your Name]</p>
+    <img src="https://img.freepik.com/free-vector/night-ocean-landscape-full-moon-stars-shine_107791-7397.jpg" alt="Profile Picture" style="border-radius: 50%;">
+    <br>
+    <a href="https://www.example.com" class="btn">View My Portfolio</a>
+</div>
+</body>
+</html>
+'''
 
 # Creates SMTP session
 s = smtplib.SMTP('smtp.gmail.com', 587)
@@ -29,7 +60,7 @@ try:
     s.login(sender_email, password)
 
     # Message format
-    message = f"Subject: {subject}\n\n{body}"
+    message = f"Subject: {subject}\nContent-Type: text/html\n\n{body}"
 
     # Sending the mail to multiple recipients
     for recipient in recipient_emails:
