@@ -1,90 +1,121 @@
-# Importing necessary libraries
+import streamlit as st
 import smtplib
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Get credentials from environment variables
+# Get email credentials from environment variables
 sender_email = os.getenv("SENDER_EMAIL")
 password = os.getenv("PASSWORD")
 
-# List of recipient email addresses
-recipient_emails = [
-    "vickykawadkar779@gmail.com"
-]
+# Load recipients from file automatically
+def load_recipients():
+    recipients = []
+    try:
+        with open("recipients.txt", "r") as f:
+            recipients = [line.strip() for line in f if line.strip()]
+    except FileNotFoundError:
+        recipients = []
+    return recipients
 
-# Email subject and enhanced HTML body
-subject = "Get a Project Collaboration"
-body = '''
-<html>
-<head>
-<style>
-    .btn {
-        background-color: #FF5722;
+recipients = load_recipients()
+
+# Custom CSS for strong background and bold text
+st.markdown(
+    """
+    <style>
+    .main {
+        background-color: #121212;
         color: white;
-        padding: 14px 28px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-        border-radius: 10px;
-        margin-top: 15px;
-        transition: background-color 0.3s ease;
-        font-size: 16px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 40px;
+    }
+    .stTextInput>div>div>input[readonly] {
+        background-color: #333 !important;
+        color: #eee !important;
         font-weight: bold;
     }
-    .btn:hover {
-        background-color: #E64A19;
+    .recipients {
+        background-color: #1e1e1e;
+        padding: 15px;
+        border-radius: 8px;
+        max-height: 200px;
+        overflow-y: auto;
+        font-weight: bold;
+        font-size: 16px;
     }
-    .container {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        color: #333;
-        max-width: 600px;
-        margin: auto;
-        padding: 20px;
-        border: 1px solid #ddd;
+    .btn-confirm {
+        background-color: #ff5722;
+        color: white;
+        font-size: 20px;
+        font-weight: 900;
+        padding: 15px 0;
+        width: 100%;
         border-radius: 12px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
     }
-    h2 {
-        color: #FF5722;
+    .btn-confirm:hover {
+        background-color: #e64a19;
     }
-</style>
-</head>
-<body>
-<div class="container">
-    <h2>Get a Project Collaboration</h2>
-    <p>Hello,<br><br>I hope this message finds you well. I am reaching out to discuss potential project collaboration opportunities. I believe that with my skills and experience, we could work together to achieve great results. Please let me know if you would be open to discussing this further.</p>
-    <p>Looking forward to your response.<br>Best regards,<br>[Your Name]</p>
-    <img src="https://img.freepik.com/free-vector/night-ocean-landscape-full-moon-stars-shine_107791-7397.jpg" alt="Profile Picture" style="border-radius: 50%; width: 100px; height: 100px;">
-    <br>
-    <a href="https://www.example.com" class="btn">View My Portfolio</a>
-</div>
-</body>
-</html>
-'''
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
-# Creates SMTP session
-s = smtplib.SMTP('smtp.gmail.com', 587)
-# Start TLS for security
-s.starttls()
+st.markdown('<div class="main">', unsafe_allow_html=True)
 
-try:
-    # Authentication
-    s.login(sender_email, password)
+st.title("Automated Email Sender")
 
-    # Message format
-    message = f"Subject: {subject}\nContent-Type: text/html\n\n{body}"
+# Show sender email and password readonly
+st.text_input("Sender Email", value=sender_email or "", disabled=True)
+st.text_input("Password", value=password or "", disabled=True, type="password")
 
-    # Sending the mail to multiple recipients
-    for recipient in recipient_emails:
-        s.sendmail(sender_email, recipient, message)
-        print(f"Email sent to {recipient}")
+st.markdown("### Recipient Emails")
+if recipients:
+    st.markdown(f'<div class="recipients">{"<br>".join(recipients)}</div>', unsafe_allow_html=True)
+else:
+    st.warning("No recipients found in recipients.txt")
 
-    print("All emails sent successfully!")
-except Exception as e:
-    print(f"Error: {e}")
-finally:
-    # Terminating the session
-    s.quit()
+if st.button("CONFIRM & SEND", key="send_btn", help="Click to send emails"):
+    if not sender_email or not password:
+        st.error("Sender email or password not set in .env file")
+    elif not recipients:
+        st.error("No recipients to send emails")
+    else:
+        try:
+            # Email details
+            subject = "Get a Project Collaboration"
+            body = """
+            <html>
+            <body style='font-family:Segoe UI; color:#333;'>
+            <h2 style='color:#ff5722;'>Get a Project Collaboration</h2>
+            <p>Hello,<br><br>I hope this message finds you well. I am reaching out to discuss potential project collaboration opportunities. I believe that with my skills and experience, we could work together to achieve great results. Please let me know if you would be open to discussing this further.</p>
+            <p>Looking forward to your response.<br>Best regards,<br>[Your Name]</p>
+            <img src='https://img.freepik.com/free-vector/night-ocean-landscape-full-moon-stars-shine_107791-7397.jpg' alt='Profile Picture' style='border-radius: 50%; width: 100px; height: 100px;'>
+            <br>
+            <a href='https://www.example.com' style='
+                background-color:#ff5722; color:white; padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:bold;'>View My Portfolio</a>
+            </body>
+            </html>
+            """
+            message = f"Subject: {subject}\nContent-Type: text/html\n\n{body}"
+
+            # SMTP session
+            s = smtplib.SMTP('smtp.gmail.com', 587)
+            s.starttls()
+            s.login(sender_email, password)
+
+            for r in recipients:
+                s.sendmail(sender_email, r, message)
+                st.success(f"Email sent to {r}")
+
+            s.quit()
+            st.success("All emails sent successfully!")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+st.markdown("</div>", unsafe_allow_html=True)
