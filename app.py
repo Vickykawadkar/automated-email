@@ -22,18 +22,33 @@ body = '''
 <head>
 <style>
     .btn {
-        background-color: #4CAF50;
+        background-color: #FF5722;
         color: white;
-        padding: 10px 20px;
+        padding: 14px 28px;
         text-align: center;
         text-decoration: none;
         display: inline-block;
-        border-radius: 5px;
-        margin-top: 10px;
+        border-radius: 10px;
+        margin-top: 15px;
+        transition: background-color 0.3s ease;
+        font-size: 16px;
+        font-weight: bold;
+    }
+    .btn:hover {
+        background-color: #E64A19;
     }
     .container {
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: #333;
+        max-width: 600px;
+        margin: auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+        color: #FF5722;
     }
 </style>
 </head>
@@ -42,7 +57,7 @@ body = '''
     <h2>Get a Project Collaboration</h2>
     <p>Hello,<br><br>I hope this message finds you well. I am reaching out to discuss potential project collaboration opportunities. I believe that with my skills and experience, we could work together to achieve great results. Please let me know if you would be open to discussing this further.</p>
     <p>Looking forward to your response.<br>Best regards,<br>[Your Name]</p>
-    <img src="https://img.freepik.com/free-vector/night-ocean-landscape-full-moon-stars-shine_107791-7397.jpg" alt="Profile Picture" style="border-radius: 50%;">
+    <img src="https://img.freepik.com/free-vector/night-ocean-landscape-full-moon-stars-shine_107791-7397.jpg" alt="Profile Picture" style="border-radius: 50%; width: 100px; height: 100px;">
     <br>
     <a href="https://www.example.com" class="btn">View My Portfolio</a>
 </div>
