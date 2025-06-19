@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import smtplib
 import os
 from dotenv import load_dotenv
@@ -6,118 +7,126 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 
-# Load environment variables
+# Load credentials
 load_dotenv()
-
-# Get email credentials from environment variables
 sender_email = os.getenv("SENDER_EMAIL")
+password = os.getenv("PASSWORD")
 
-# Custom CSS for modern and impactful UI
-st.markdown(
-    '''
-    <style>
-    .main {
-        background-color: #121212;
-        color: white;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        padding: 40px;
+# Custom CSS for premium UI
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    html, body, .main {
+        background-color: #0f0f0f;
+        color: #ffffff;
+        font-family: 'Inter', sans-serif;
+        animation: fadeIn 1.5s ease;
     }
-    .btn-confirm {
+
+    h1 {
+        color: #ff5722;
+        font-size: 42px;
+        margin-bottom: 30px;
+        font-weight: 800;
+    }
+
+    .stTextArea label,
+    .stFileUploader label {
+        font-size: 18px;
+        font-weight: 600;
+        color: #e0e0e0;
+    }
+
+    .stTextArea textarea,
+    .stFileUploader input {
+        background-color: #1e1e1e;
+        color: white;
+        border: 1px solid #444;
+        border-radius: 10px;
+        padding: 10px;
+    }
+
+    .stButton button {
         background-color: #ff5722;
         color: white;
-        font-size: 22px;
-        font-weight: 900;
-        padding: 15px 0;
-        width: 100%;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 14px 30px;
         border-radius: 12px;
         border: none;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
         margin-top: 20px;
+        transition: background-color 0.3s ease;
     }
-    .btn-confirm:hover {
+
+    .stButton button:hover {
         background-color: #e64a19;
     }
-    .portfolio-btn {
-        background-color: #ff5722;
-        color: white;
-        padding: 12px 24px;
-        border-radius: 12px;
-        text-decoration: none;
-        font-weight: bold;
-        display: inline-block;
-        margin: 20px 0;
-        font-size: 18px;
+
+    @keyframes fadeIn {
+        from {opacity: 0;}
+        to {opacity: 1;}
     }
-    .portfolio-btn:hover {
-        background-color: #e64a19;
-    }
-    </style>
-    ''',
-    unsafe_allow_html=True,
-)
+</style>
+""", unsafe_allow_html=True)
 
-st.markdown('<div class="main">', unsafe_allow_html=True)
+st.title("📧 Bulk Email Sender")
 
-st.title("Automated Email Sender")
+# Upload Excel
+excel_file = st.file_uploader("Upload Excel File", type=["xlsx"])
 
-# Display sender email
-st.text_input("Sender Email", value=sender_email or "", disabled=True)
+# Message box
+custom_message = st.text_area("Write Your Message", height=200)
 
-# Input multiple email addresses
-recipient_emails = st.text_area("Enter Recipient Emails (comma-separated)")
-recipients = [email.strip() for email in recipient_emails.split(",") if email.strip()]
+# Optional image
+uploaded_image = st.file_uploader("Upload an Image (optional)", type=["jpg", "jpeg", "png"])
 
-# GitHub portfolio link
-portfolio_link = st.text_input("Enter GitHub Portfolio Link")
-
-# Upload an image for the email
-uploaded_image = st.file_uploader("Upload an Image", type=["jpg", "jpeg", "png"])
-
-if st.button("SEND EMAILS", key="send_btn", help="Click to send emails"):
-    if not sender_email:
-        st.error("Sender email not set in .env file")
-    elif not recipients:
-        st.error("No recipients to send emails")
+# Send button
+if st.button("📨 Send Emails"):
+    if not sender_email or not password:
+        st.error("Sender email or password missing in .env")
+    elif not excel_file:
+        st.error("Please upload an Excel file")
+    elif not custom_message.strip():
+        st.error("Please enter a message to send")
     else:
         try:
-            for r in recipients:
-                # Create message container
-                msg = MIMEMultipart()
-                msg['From'] = sender_email
-                msg['To'] = r
-                msg['Subject'] = "Exciting Project Collaboration"
+            df = pd.read_excel(excel_file)
 
-                # Email body
-                body = f'''<html>
-<body style='font-family:Segoe UI; color:#333;'>
-<h2 style='color:#ff5722; font-size:28px;'>Exciting Project Collaboration</h2>
-<p><b>Hello,</b><br><br><b>I hope this message finds you well. I am reaching out to discuss potential project collaboration opportunities. I believe that with my skills and experience, we could work together to achieve great results. Please let me know if you would be open to discussing this further.</b></p>
-<p><b>Looking forward to your response.<br>Best regards,<br>[Your Name]</b></p>'''
-
-                # Add portfolio link if provided
-                if portfolio_link:
-                    body += f'''<br><a href='{portfolio_link}' class='portfolio-btn'>View My Portfolio</a>'''
-
-                # Attach the HTML body
-                msg.attach(MIMEText(body, 'html'))
-
-                # Attach image if uploaded
-                if uploaded_image is not None:
-                    image_data = uploaded_image.read()
-                    image = MIMEImage(image_data)
-                    image.add_header('Content-Disposition', 'attachment', filename=uploaded_image.name)
-                    msg.attach(image)
-
-                # SMTP session
+            if 'Name' not in df.columns or 'Email' not in df.columns:
+                st.error("Excel must have 'Name' and 'Email' columns")
+            else:
+                success_count = 0
                 with smtplib.SMTP('smtp.gmail.com', 587) as s:
                     s.starttls()
-                    s.login(sender_email, os.getenv("PASSWORD"))
-                    s.send_message(msg)
-                    st.success(f"Email sent to {r}")
+                    s.login(sender_email, password)
 
-            st.success("All emails sent successfully!")
+                    for _, row in df.iterrows():
+                        name = str(row['Name'])
+                        receiver_email = str(row['Email'])
+
+                        # Replace [Name] and add signature
+                        personalized_msg = custom_message.replace("[Name]", name)
+                        personalized_msg += "<br><br><b>Best regards,<br>Vicky Kawadkar</b>"
+
+                        msg = MIMEMultipart()
+                        msg['From'] = sender_email
+                        msg['To'] = receiver_email
+                        msg['Subject'] = "Exciting Project Collaboration"
+
+                        msg.attach(MIMEText(personalized_msg, 'html'))
+
+                        if uploaded_image:
+                            image_data = uploaded_image.read()
+                            image = MIMEImage(image_data)
+                            image.add_header('Content-Disposition', 'attachment', filename=uploaded_image.name)
+                            msg.attach(image)
+
+                        s.send_message(msg)
+                        success_count += 1
+                        st.success(f"✅ Sent to {name} ({receiver_email})")
+
+                st.success(f"🎉 All {success_count} emails sent successfully!")
+
         except Exception as e:
-            st.error(f"Error: {e}")
-
-st.markdown("</div>", unsafe_allow_html=True)
+            st.error(f"❌ Error: {e}")
