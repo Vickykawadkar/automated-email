@@ -6,63 +6,56 @@ from dotenv import load_dotenv
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+from email.mime.application import MIMEApplication
+import mimetypes
 
-# Load credentials
+# Load credentials from .env file
 load_dotenv()
 sender_email = os.getenv("SENDER_EMAIL")
 password = os.getenv("PASSWORD")
 
-# Custom CSS for premium UI
+# Custom CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-
     html, body, .main {
         background-color: #0f0f0f;
         color: #ffffff;
         font-family: 'Inter', sans-serif;
         animation: fadeIn 1.5s ease;
     }
-
     h1 {
-        color: #ff5722;
+        color: #E5315F;
         font-size: 42px;
         margin-bottom: 30px;
         font-weight: 800;
     }
-
     .stTextArea label,
-    .stFileUploader label {
+    .stFileUploader label,
+    .stTextInput label {
         font-size: 18px;
         font-weight: 600;
         color: #e0e0e0;
     }
-
     .stTextArea textarea,
-    .stFileUploader input {
+    .stFileUploader input,
+    .stTextInput input {
         background-color: #1e1e1e;
         color: white;
         border: 1px solid #444;
         border-radius: 10px;
         padding: 10px;
     }
-
     .stButton button {
-        background-color: #ff5722;
-        color: white;
+        background-color: #E5315F !important;
+        color: white !important;
         font-size: 20px;
         font-weight: bold;
         padding: 14px 30px;
         border-radius: 12px;
         border: none;
         margin-top: 20px;
-        transition: background-color 0.3s ease;
     }
-
-    .stButton button:hover {
-        background-color: #e64a19;
-    }
-
     @keyframes fadeIn {
         from {opacity: 0;}
         to {opacity: 1;}
@@ -70,29 +63,33 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.title("📧 Bulk Email Sender")
+# Centered Title
+st.markdown("""
+<h1 style='text-align: center; color: #E5315F; font-size: 48px; font-weight: 800;'>
+📧 Bulk Email Sender
+</h1>
+""", unsafe_allow_html=True)
 
-# Upload Excel
+# Inputs
 excel_file = st.file_uploader("Upload Excel File", type=["xlsx"])
-
-# Message box
+subject = st.text_input("Enter Email Subject", value="")
 custom_message = st.text_area("Write Your Message", height=200)
-
-# Optional image
 uploaded_image = st.file_uploader("Upload an Image (optional)", type=["jpg", "jpeg", "png"])
+uploaded_resume = st.file_uploader("Upload Your Resume (PDF)", type=["pdf"])
 
-# Send button
+# Send Email
 if st.button("📨 Send Emails"):
     if not sender_email or not password:
         st.error("Sender email or password missing in .env")
     elif not excel_file:
         st.error("Please upload an Excel file")
+    elif not subject.strip():
+        st.error("Please enter a subject")
     elif not custom_message.strip():
         st.error("Please enter a message to send")
     else:
         try:
             df = pd.read_excel(excel_file)
-
             if 'Name' not in df.columns or 'Email' not in df.columns:
                 st.error("Excel must have 'Name' and 'Email' columns")
             else:
@@ -105,22 +102,36 @@ if st.button("📨 Send Emails"):
                         name = str(row['Name'])
                         receiver_email = str(row['Email'])
 
-                        # Replace [Name] and add signature
-                        personalized_msg = custom_message.replace("[Name]", name)
-                        personalized_msg += "<br><br><b>Best regards,<br>Vicky Kawadkar</b>"
+                        # Preserve structure: \n => <br>, space => &nbsp;
+                        msg_raw = custom_message.replace("[Name]", name)
+                        msg_html = msg_raw.replace("  ", "&nbsp;&nbsp;").replace("\n", "<br>")
 
                         msg = MIMEMultipart()
                         msg['From'] = sender_email
                         msg['To'] = receiver_email
-                        msg['Subject'] = "Exciting Project Collaboration"
+                        msg['Subject'] = subject
+                        msg.attach(MIMEText(msg_html, 'html'))
 
-                        msg.attach(MIMEText(personalized_msg, 'html'))
-
+                        # Optional Image
                         if uploaded_image:
+                            uploaded_image.seek(0)
                             image_data = uploaded_image.read()
-                            image = MIMEImage(image_data)
-                            image.add_header('Content-Disposition', 'attachment', filename=uploaded_image.name)
-                            msg.attach(image)
+                            mime_type, _ = mimetypes.guess_type(uploaded_image.name)
+                            if mime_type and mime_type.startswith("image/"):
+                                subtype = mime_type.split("/")[1]
+                                image = MIMEImage(image_data, _subtype=subtype)
+                                image.add_header('Content-Disposition', 'attachment', filename=uploaded_image.name)
+                                msg.attach(image)
+                            else:
+                                st.warning(f"⚠️ Skipping image: Could not determine image type for {uploaded_image.name}")
+
+                        # Optional Resume
+                        if uploaded_resume:
+                            uploaded_resume.seek(0)
+                            resume_data = uploaded_resume.read()
+                            resume = MIMEApplication(resume_data, _subtype='pdf')
+                            resume.add_header('Content-Disposition', 'attachment', filename=uploaded_resume.name)
+                            msg.attach(resume)
 
                         s.send_message(msg)
                         success_count += 1
